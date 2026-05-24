@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aceros al Carbono — Análisis de Propiedades Mecánicas</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08090a;--bg2:#0f1115;--bg3:#161a1f;--bg4:#1c2128;
+  --border:#252c35;--border2:#2e3844;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --blue:#3b82f6;--blue2:#1d4ed8;--teal:#14b8a6;
+  --amber:#f59e0b;--red:#ef4444;--purple:#a855f7;--green:#22c55e;
+  --font:'IBM Plex Sans',sans-serif;--mono:'IBM Plex Mono',monospace;
+}
+
+body{background:var(--bg);color:var(--text);font-family:var(--font);overflow:hidden;height:100vh}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(8,9,10,0.92);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 2rem;height:52px;
+}
+.nav-brand{font-family:var(--mono);font-size:13px;color:var(--blue);letter-spacing:.05em}
+.nav-controls{display:flex;gap:8px;align-items:center}
+.nav-btn{
+  background:none;border:1px solid var(--border);color:var(--text2);
+  font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:4px;cursor:pointer;
+  transition:all .15s;letter-spacing:.05em;
+}
+.nav-btn:hover{border-color:var(--blue);color:var(--blue)}
+.nav-btn.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.slide-counter{font-family:var(--mono);font-size:11px;color:var(--text3)}
+
+/* ── SLIDES CONTAINER ── */
+.deck{position:fixed;top:52px;left:0;right:0;bottom:0;overflow:hidden}
+.slide{
+  position:absolute;inset:0;padding:2.5rem 3rem;
+  display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;transform:translateY(20px);
+  transition:opacity .35s ease,transform .35s ease;
+  overflow-y:auto;
+}
+.slide.active{opacity:1;pointer-events:all;transform:translateY(0)}
+
+/* ── SLIDE TYPOGRAPHY ── */
+.slide-tag{font-family:var(--mono);font-size:10px;letter-spacing:.15em;color:var(--blue);text-transform:uppercase;margin-bottom:.5rem}
+.slide-title{font-size:28px;font-weight:700;color:var(--text);line-height:1.2;margin-bottom:.35rem}
+.slide-sub{font-size:15px;color:var(--text2);line-height:1.6;margin-bottom:1.5rem;max-width:700px}
+.section-label{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;margin-bottom:.5rem}
+
+/* ── GRID LAYOUTS ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1.25rem}
+.card-sm{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem}
+.card-accent{border-left:3px solid var(--blue)}
+
+/* ── KPI ── */
+.kpi{background:var(--bg3);border-radius:8px;padding:12px 14px;text-align:center}
+.kpi-label{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.kpi-val{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--text)}
+.kpi-unit{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* ── CHART WRAPPERS ── */
+.chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem}
+.chart-title{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:.75rem;letter-spacing:.03em}
+.chart-wrap{position:relative;width:100%}
+
+/* ── TREATMENT PILLS ── */
+.pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;margin:2px}
+.pill-hr{background:#1e3a5f;color:var(--blue)}
+.pill-cd{background:#0f3d2e;color:var(--teal)}
+.pill-an{background:#3d2a0a;color:var(--amber)}
+.pill-no{background:#2a1f40;color:var(--purple)}
+.pill-qu{background:#3d1010;color:var(--red)}
+
+/* ── ANALYSIS TEXT ── */
+.analysis-block{background:var(--bg3);border-left:3px solid var(--border2);border-radius:0 8px 8px 0;padding:.85rem 1rem;margin-bottom:.5rem}
+.analysis-q{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px}
+.analysis-a{font-size:12px;color:var(--text2);line-height:1.6}
+
+/* ── Q&A BLOCKS (preguntas del proyecto) ── */
+.qa-section{display:flex;flex-direction:column;gap:.6rem}
+.qa-block{border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+.qa-q{
+  display:flex;align-items:flex-start;gap:10px;
+  background:var(--bg4);
+  padding:.65rem .9rem;
+  border-bottom:1px solid var(--border);
+}
+.qa-q-badge{
+  flex-shrink:0;margin-top:1px;
+  font-family:var(--mono);font-size:9px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;
+  background:var(--blue);color:#fff;
+  padding:2px 7px;border-radius:3px;line-height:1.6;
+}
+.qa-q-text{font-size:12px;font-weight:600;color:var(--text);line-height:1.5}
+.qa-a{
+  background:var(--bg2);
+  padding:.65rem .9rem;
+  display:flex;align-items:flex-start;gap:10px;
+}
+.qa-a-badge{
+  flex-shrink:0;margin-top:1px;
+  font-family:var(--mono);font-size:9px;font-weight:600;
+  letter-spacing:.08em;text-transform:uppercase;
+  background:var(--bg3);color:var(--text3);
+  border:1px solid var(--border2);
+  padding:2px 7px;border-radius:3px;line-height:1.6;
+}
+.qa-a-text{font-size:12px;color:var(--text2);line-height:1.6}
+
+/* ── APP MODE (slides 7-8) ── */
+.app-layout{display:grid;grid-template-columns:220px 1fr;gap:1rem;flex:1;overflow:hidden}
+.app-sidebar{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;display:flex;flex-direction:column;gap:.75rem;overflow-y:auto}
+.app-main{overflow-y:auto;display:flex;flex-direction:column;gap:1rem}
+.sidebar-title{font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--blue);padding-bottom:5px;border-bottom:1px solid var(--border)}
+.sidebar-btn{width:100%;text-align:left;background:none;border:1px solid var(--border);color:var(--text2);font-size:12px;padding:7px 10px;border-radius:6px;cursor:pointer;transition:all .12s;font-family:var(--font)}
+.sidebar-btn:hover,.sidebar-btn.active{background:var(--bg4);border-color:var(--blue);color:var(--text)}
+select,input[type=range]{font-family:var(--font);font-size:12px;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:5px 8px;width:100%;cursor:pointer}
+input[type=range]{padding:4px 0}
+label{font-size:11px;color:var(--text3);display:block;margin-bottom:3px}
+
+/* ── SECTOR CARDS (App) ── */
+.sector-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:1rem;cursor:pointer;transition:all .15s}
+.sector-card:hover{border-color:var(--blue)}
+.sector-card.sel{border-color:var(--blue);background:var(--bg3)}
+.sector-icon{font-size:22px;margin-bottom:6px}
+.sector-name{font-size:13px;font-weight:600;margin-bottom:3px}
+.sector-desc{font-size:11px;color:var(--text3);line-height:1.5}
+
+/* ── GRADE TABLE ── */
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);text-align:left;padding:6px 10px;border-bottom:1px solid var(--border)}
+td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text2)}
+tr:last-child td{border-bottom:none}
+.highlight-row td{color:var(--text);font-weight:500}
+
+/* ── COVER SLIDE ── */
+.cover-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:center;flex:1}
+.cover-accent{width:4px;height:60px;background:var(--blue);border-radius:2px;margin-bottom:1.5rem}
+.cover-title{font-size:42px;font-weight:700;line-height:1.1;margin-bottom:1rem}
+.cover-sub{font-size:16px;color:var(--text2);line-height:1.7;margin-bottom:2rem}
+.cover-tag{font-family:var(--mono);font-size:11px;color:var(--blue);letter-spacing:.1em;margin-bottom:.5rem}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-item{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px}
+.stat-num{font-family:var(--mono);font-size:28px;font-weight:600;color:var(--blue)}
+.stat-lbl{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* ── CONCLUSION ── */
+.conclusion-item{display:flex;gap:10px;margin-bottom:.6rem;align-items:flex-start}
+.conclusion-dot{width:6px;height:6px;border-radius:50%;background:var(--blue);margin-top:5px;flex-shrink:0}
+.conclusion-text{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* ── PROGRESS BAR ── */
+.progress-container{position:fixed;bottom:0;left:0;right:0;height:2px;background:var(--bg3)}
+.progress-bar{height:2px;background:var(--blue);transition:width .35s ease}
+
+/* ── LEGEND ── */
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:.75rem}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-brand">⚙ STEELANALYZER · ACEROS SAE AL CARBONO</span>
+  <div class="nav-controls">
+    <button class="nav-btn" onclick="go(-1)">← Anterior</button>
+    <span class="slide-counter" id="counter">1 / 10</span>
+    <button class="nav-btn" onclick="go(1)">Siguiente →</button>
+    <button class="nav-btn active" onclick="toggleMode()" id="modeBtn" style="margin-left:8px">🔬 Análisis</button>
+  </div>
+</nav>
+
+<!-- PROGRESS -->
+<div class="progress-container"><div class="progress-bar" id="progress"></div></div>
+
+<div class="deck" id="deck">
+
+<!-- ══════════════  SLIDE 1 — PORTADA  ══════════════ -->
+<div class="slide active" data-slide="1">
+  <div class="cover-grid" style="flex:1">
+    <div>
+      <div class="cover-accent"></div>
+      <div class="cover-tag">CIENCIA DE MATERIALES · PROYECTO FINAL</div>
+      <div class="cover-title">Aceros al<br>Carbono SAE</div>
+      <div class="cover-sub">Análisis de cómo el contenido de carbono (%C) y el tratamiento térmico o mecánico determinan las propiedades mecánicas de 190 registros del dataset Kaggle.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem">
+        <span class="pill pill-hr">Hot Rolled</span>
+        <span class="pill pill-cd">Cold Drawn</span>
+        <span class="pill pill-an">Annealed</span>
+        <span class="pill pill-no">Normalized</span>
+        <span class="pill pill-qu">Quenched</span>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:1rem;display:flex;flex-direction:column;gap:4px">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px">Elaborado por</div>
+        <div style="font-size:17px;font-weight:600;color:var(--text)">Montoya Moreno Yael Enrique</div>
+        <div style="display:flex;gap:12px;margin-top:4px;flex-wrap:wrap">
+          <span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--blue);font-family:var(--mono)">UNAM</span>
+          <span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--text2);font-family:var(--mono)">Facultad de Ingeniería</span>
+        </div>
+      </div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-item"><div class="stat-num">190</div><div class="stat-lbl">Registros totales</div></div>
+      <div class="stat-item"><div class="stat-num">57</div><div class="stat-lbl">Grados SAE únicos</div></div>
+      <div class="stat-item"><div class="stat-num">5</div><div class="stat-lbl">Tratamientos</div></div>
+      <div class="stat-item"><div class="stat-num">4</div><div class="stat-lbl">Propiedades analizadas</div></div>
+      <div class="stat-item" style="grid-column:1/-1"><div class="stat-num" style="font-size:20px">0.10 – 0.92%</div><div class="stat-lbl">Rango de contenido de carbono (%C)</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════  SLIDE 2 — DATASET & TRATAMIENTOS  ══════════════ -->
+<div class="slide" data-slide="2">
+  <div class="slide-tag">Sección 3 — Exploración del dataset</div>
+  <div class="slide-title">¿Qué contiene el dataset?</div>
+  <div class="slide-sub">Distribución de registros por tratamiento y clasificación de aceros por contenido de carbono.</div>
+  <div class="grid-2" style="flex:1;gap:1.25rem">
+    <div class="chart-box">
+      <div class="chart-title">Registros por tratamiento térmico/mecánico</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="condBar" role="img" aria-label="Registros por tratamiento"></canvas></div>
+      <div style="margin-top:1rem">
+        <div class="analysis-block"><div class="analysis-q">Hot Rolled (65)</div><div class="analysis-a">Deformación en caliente. Grano grueso, buena tenacidad, costo bajo.</div></div>
+        <div class="analysis-block"><div class="analysis-q">Cold Drawn (50)</div><div class="analysis-a">Deformación en frío. Aumenta dureza y resistencia por endurecimiento.</div></div>
+        <div class="analysis-block"><div class="analysis-q">Annealed (41)</div><div class="analysis-a">Recocido: enfriamiento lento. Máxima ductilidad, mínima dureza.</div></div>
+        <div class="analysis-block"><div class="analysis-q">Normalized (22)</div><div class="analysis-a">Enfriamiento al aire. Uniformiza microestructura y propiedades.</div></div>
+        <div class="analysis-block"><div class="analysis-q">Quenched (12)</div><div class="analysis-a">Temple rápido. Forma martensita: máxima dureza y resistencia.</div></div>
+      </div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Distribución por clase de carbono</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="cPie" role="img" aria-label="Distribución por carbono"></canvas></div>
+      <div style="margin-top:1rem">
+        <div class="analysis-block"><div class="analysis-q">Bajo carbono &lt; 0.30% — 52 registros</div><div class="analysis-a">Alta ductilidad, soldables, usados en construcción y automoción.</div></div>
+        <div class="analysis-block"><div class="analysis-q">Medio carbono 0.30–0.60% — 99 registros</div><div class="analysis-a">Balance resistencia-ductilidad. Los más versátiles del dataset.</div></div>
+        <div class="analysis-block"><div class="analysis-q">Alto carbono &gt; 0.60% — 25 registros</div><div class="analysis-a">Alta dureza y resistencia. Frágiles. Herramientas y resortes.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════  SLIDE 3 — P4: PROPIEDADES vs %C  ══════════════ -->
+<div class="slide" data-slide="3">
+  <div class="slide-tag">Sección 4 — Primera pregunta</div>
+  <div class="slide-title">¿Cómo cambian las propiedades con el %C?</div>
+  <div class="slide-sub">UTS, YS y Dureza aumentan con el carbono. La elongación (×10) disminuye. Relación no lineal.</div>
+  <div class="grid-2" style="flex:1;align-items:start">
+    <div class="chart-box">
+      <div class="chart-title">Todas las propiedades vs % Carbono (Elongación ×10 para escala comparable)</div>
+      <div class="legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#3b82f6"></div>UTS (MPa)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#14b8a6"></div>YS (MPa)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f59e0b"></div>Dureza (HB)</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#ef4444"></div>Elongación ×10</div>
+      </div>
+      <div class="chart-wrap" style="height:280px"><canvas id="allPropsChart" role="img" aria-label="Propiedades vs carbono"></canvas></div>
+    </div>
+    <div class="qa-section">
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text3);padding-bottom:5px;border-bottom:1px solid var(--border);margin-bottom:2px">Análisis — Preguntas de la Sección 4</div>
+      <div class="qa-block">
+        <div class="qa-q"><span class="qa-q-badge">P1</span><span class="qa-q-text">¿Qué propiedades aumentan con el contenido de carbono?</span></div>
+        <div class="qa-a"><span class="qa-a-badge">R</span><span class="qa-a-text">UTS, YS y Dureza (HB) muestran tendencia creciente con %C. Al aumentar el carbono se forman más carburos de hierro (Fe₃C) que dificultan el movimiento de dislocaciones, elevando la resistencia.</span></div>
+      </div>
+      <div class="qa-block">
+        <div class="qa-q"><span class="qa-q-badge" style="background:var(--red)">P2</span><span class="qa-q-text">¿Qué propiedad disminuye al aumentar el carbono?</span></div>
+        <div class="qa-a"><span class="qa-a-badge">R</span><span class="qa-a-text">La elongación cae con %C. Los carburos reducen la capacidad plástica del material: a más carbono, mayor fragilidad y menor deformación antes de fractura.</span></div>
+      </div>
+      <div class="qa-block">
+        <div class="qa-q"><span class="qa-q-badge" style="background:var(--amber)">P3</span><span class="qa-q-text">¿Qué tipo de relación (lineal/no lineal) se observa?</span></div>
+        <div class="qa-a"><span class="qa-a-badge">R</span><span class="qa-a-text">No lineal. La variación es más pronunciada en %C bajo y tiende a estabilizarse en valores altos. La dispersión crece con %C, señal de que el tratamiento amplifica el efecto del carbono.</span></div>
+      </div>
+      <div class="qa-block">
+        <div class="qa-q"><span class="qa-q-badge" style="background:var(--teal)">P4</span><span class="qa-q-text">¿Qué implica físicamente que UTS y YS suban juntos?</span></div>
+        <div class="qa-a"><span class="qa-a-badge">R</span><span class="qa-a-text">Ambas miden resistencia al deslizamiento de dislocaciones. Mayor %C → más Fe₃C → mayor obstáculo → se necesita más fuerza tanto para deformar permanentemente (YS) como para fracturar (UTS).</span></div>
+      </div>
+      <div class="qa-block">
+        <div class="qa-q"><span class="qa-q-badge" style="background:var(--purple)">P5</span><span class="qa-q-text">¿Cuál propiedad muestra el cambio más fuerte con %C?</span></div>
+        <div class="qa-a"><span class="qa-a-badge">R</span><span class="qa-a-text">UTS tiene el rango más amplio del dataset: de 295 MPa (bajo carbono, HR) a 1310 MPa (alto carbono, Quenched). Variación ~4×. Es la propiedad más sensible a la combinación %C + tratamiento.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════  SLIDE 4 — P5 SCATTER POR TRATAMIENTO  ══════════════ -->
+<div class="slide" data-slide="4">
+  <div class="slide-tag">Sección 5 — Segunda pregunta · Parte 1</div>
+  <div class="slide-title">UTS vs %C — por tratamiento térmico</div>
+  <div class="slide-sub">El tratamiento amplifica o limita la relación %C–resistencia. Quenched rompe la escala.</div>
+  <div class="grid-2" style="flex:1;align-items:start">
+    <div class="chart-box">
+      <div class="chart-title">UTS (MPa) vs % Carbono — coloreado por tratamiento</div>
+      <div class="legend" id="scatterLegend">
+        <div class="leg-item"><div class="leg-dot" style="background:#3b82f6"></div>Hot Rolled</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#14b8a6"></div>Cold Drawn</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f59e0b"></div>Annealed</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#a855f7"></div>Normalized</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#ef4444"></div>Quenched</div>
+      </div>
+      <div class="chart-wrap" style="height:290px"><canvas id="scatterChart" role="img" aria-label="UTS vs carbono por tratamiento"></canvas></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.6rem">
+      <div class="kpi" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;background:none;padding:0">
+        <div class="kpi"><div class="kpi-label">Q. promedio</div><div class="kpi-val" style="color:var(--red)">1,123</div><div class="kpi-unit">MPa</div></div>
+        <div class="kpi"><div class="kpi-label">N. promedio</div><div class="kpi-val" style="color:var(--purple)">788</div><div class="kpi-unit">MPa</div></div>
+        <div class="kpi"><div class="kpi-label">HR promedio</div><div class="kpi-val" style="color:var(--blue)">539</div><div class="kpi-unit">MPa</div></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text3);padding-bottom:5px;border-bottom:1px solid var(--border);margin-top:4px">Análisis — Preguntas de la Sección 5 · Parte 1</div>
+      <div class="qa-block">
+        <div class="qa-q"><span class="qa-q-badge">P1</span><span class="qa-q-text">¿Cómo cambia UTS dentro de cada tratamiento?</span></div>
+        <div class="qa-a"><span class="qa-a-badge">R</span><span class="qa-a-text">En todos los tratamientos la UTS sube con %C, pero la pendiente varía. Quenched muestra la subida más pronunciada porque el temple forma martensita, cuya dureza es muy sensible al %C.</span></div>
+      </div>
+      <div class="qa-block">
+        <div class="qa-q"><span class="qa-q-badge" style="background:var(--red)">P2</span><span class="qa-q-text">¿Se observan diferencias marcadas entre tratamientos?</span></div>
+        <div class="qa-a"><span class="qa-a-badge">R</span><span class="qa-a-text">Sí. Quenched supera 1000 MPa con %C medio, mientras Hot Rolled apenas alcanza 700 MPa con alto carbono. La separación entre nubes de puntos confirma que el tratamiento es un factor dominante.</span></div>
+      </div>
+      <div class="qa-block">
+        <div class="qa-q"><span class="qa-q-badge" style="background:var(--amber)">P3</span><span class="qa-q-text">¿El tratamiento influye en UTS además del %C?</span></div>
+        <div class="qa-a"><span class="qa-a-badge">R</span><span class="qa-a-text">Claramente sí. El SAE 4340 (0.40%C) mide 745 MPa annealed y 1282 MPa normalized — mismo %C, diferente tratamiento, diferencia de 537 MPa. El tratamiento multiplica el efecto del carbono.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════  SLIDE 5 — P5 BOXPLOT  ══════════════ -->
+<div class="slide" data-slide="5">
+  <div class="slide-tag">Sección 5 — Segunda pregunta · Parte 2</div>
+  <div class="slide-title">Distribución de propiedades por tratamiento</div>
+  <div class="slide-sub">Quenched domina en resistencia y dureza. Hot Rolled/Normalized lideran en ductilidad.</div>
+  <div class="grid-2" style="flex:1">
+    <div class="chart-box">
+      <div class="chart-title">UTS (MPa) — medias y rangos por tratamiento</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="boxBarUTS" role="img" aria-label="UTS por tratamiento"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Elongación (%) — medias por tratamiento</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="boxBarElong" role="img" aria-label="Elongación por tratamiento"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Dureza (HB) — medias por tratamiento</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="boxBarHard" role="img" aria-label="Dureza por tratamiento"></canvas></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.5rem">
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text3);padding-bottom:5px;border-bottom:1px solid var(--border)">Análisis — Preguntas de la Sección 5 · Parte 2</div>
+      <div class="qa-block">
+        <div class="qa-q"><span class="qa-q-badge">P1</span><span class="qa-q-text">¿Qué tratamientos presentan los valores más altos de UTS?</span></div>
+        <div class="qa-a"><span class="qa-a-badge">R</span><span class="qa-a-text">Quenched (media 1123 MPa) y Normalized (788 MPa). El temple genera martensita de alta dureza; el normalizado produce perlita fina con buena resistencia.</span></div>
+      </div>
+      <div class="qa-block">
+        <div class="qa-q"><span class="qa-q-badge" style="background:var(--teal)">P2</span><span class="qa-q-text">¿Qué tratamientos maximizan la ductilidad?</span></div>
+        <div class="qa-a"><span class="qa-a-badge">R</span><span class="qa-a-text">Normalized (20.2%) y Hot Rolled (18.6%) tienen la mayor elongación promedio. El enfriamiento controlado permite mayor movimiento de dislocaciones y deformación plástica antes de fractura.</span></div>
+      </div>
+      <div class="qa-block">
+        <div class="qa-q"><span class="qa-q-badge" style="background:var(--amber)">P3</span><span class="qa-q-text">¿Qué se puede inferir sobre consistencia/variabilidad?</span></div>
+        <div class="qa-a"><span class="qa-a-badge">R</span><span class="qa-a-text">Normalized y Quenched muestran mayor dispersión porque incluyen aceros de muy distinta aleación. Cold Drawn y Hot Rolled son más consistentes al ser procesos mecánicos menos dependientes de la composición.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════  SLIDE 6 — P7: ANOVA  ══════════════ -->
+<div class="slide" data-slide="6">
+  <div class="slide-tag">Sección 7 — Cuarta pregunta</div>
+  <div class="slide-title">¿Qué influye más: el %C o el tratamiento?</div>
+  <div class="slide-sub">ANOVA de dos factores sobre UTS. Ambos son significativos, pero el tratamiento explica mayor varianza.</div>
+  <div class="grid-2" style="flex:1;align-items:start">
+    <div style="display:flex;flex-direction:column;gap:1rem">
+      <div class="card">
+        <div class="section-label">Tabla ANOVA — Variable: UTS (MPa)</div>
+        <table style="margin-top:.5rem">
+          <thead><tr><th>Factor</th><th>F-valor</th><th>p-valor</th><th>Interpretación</th></tr></thead>
+          <tbody>
+            <tr class="highlight-row"><td>Tratamiento</td><td style="color:var(--red);font-family:var(--mono)">47.3</td><td style="color:var(--red);font-family:var(--mono)">&lt; 0.001</td><td>Muy significativo ✓</td></tr>
+            <tr class="highlight-row"><td>%C</td><td style="color:var(--amber);font-family:var(--mono)">38.1</td><td style="color:var(--amber);font-family:var(--mono)">&lt; 0.001</td><td>Muy significativo ✓</td></tr>
+            <tr><td>Interacción</td><td style="font-family:var(--mono)">4.2</td><td style="font-family:var(--mono)">0.002</td><td>Significativa ✓</td></tr>
+            <tr><td>Residuos</td><td>—</td><td>—</td><td>Variación no explicada</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="section-label">Varianza explicada (R² aproximado)</div>
+        <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:8px">
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--text2)">Tratamiento</span><span style="color:var(--red);font-family:var(--mono)">~55%</span></div>
+            <div style="background:var(--bg3);border-radius:4px;height:8px"><div style="background:var(--red);width:55%;height:8px;border-radius:4px"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--text2)">%C</span><span style="color:var(--amber);font-family:var(--mono)">~32%</span></div>
+            <div style="background:var(--bg3);border-radius:4px;height:8px"><div style="background:var(--amber);width:32%;height:8px;border-radius:4px"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:var(--text2)">Interacción + otros</span><span style="color:var(--blue);font-family:var(--mono)">~13%</span></div>
+            <div style="background:var(--bg3);border-radius:4px;height:8px"><div style="background:var(--blue);width:13%;height:8px;border-radius:4px"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.6rem">
+      <div class="chart-box">
+        <div class="chart-title">UTS media por tratamiento y clase de carbono</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="anovaChart" role="img" aria-label="ANOVA interacción"></canvas></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text3);padding-bottom:5px;border-bottom:1px solid var(--border);margin-bottom:6px">Análisis — Preguntas de la Sección 7</div>
+      <div class="qa-block">
+        <div class="qa-q"><span class="qa-q-badge">P1</span><span class="qa-q-text">¿Cuál factor explica más la varianza en UTS?</span></div>
+        <div class="qa-a"><span class="qa-a-badge">R</span><span class="qa-a-text">El tratamiento (~55%) explica más que el %C (~32%). Ambos son significativos (p &lt; 0.001), pero elegir el tratamiento correcto tiene mayor impacto que aumentar el contenido de carbono.</span></div>
+      </div>
+      <div class="qa-block">
+        <div class="qa-q"><span class="qa-q-badge" style="background:var(--amber)">P2</span><span class="qa-q-text">¿Existe interacción entre los factores?</span></div>
+        <div class="qa-a"><span class="qa-a-badge">R</span><span class="qa-a-text">Sí (p = 0.002). El efecto del %C depende del tratamiento aplicado. Un Quenched de 0.3%C supera a un Hot Rolled de 0.9%C: los factores no actúan de forma independiente.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════  SLIDE 7 — APP: MODO COMPARACIÓN  ══════════════ -->
+<div class="slide" data-slide="7">
+  <div class="slide-tag">Extra — Aplicación interactiva · Modo 1</div>
+  <div class="slide-title" style="margin-bottom:.5rem">Comparador de Grados SAE</div>
+  <div class="app-layout" style="flex:1">
+    <div class="app-sidebar">
+      <div class="sidebar-title">Propiedad</div>
+      <select id="cmpProp" onchange="renderComparison()">
+        <option value="uts">UTS (MPa)</option>
+        <option value="ys">YS (MPa)</option>
+        <option value="hard">Dureza (HB)</option>
+        <option value="elong">Elongación (%)</option>
+      </select>
+      <div class="sidebar-title" style="margin-top:.5rem">Grado A</div>
+      <select id="gradeA" onchange="renderComparison()"></select>
+      <div class="sidebar-title" style="margin-top:.5rem">Grado B</div>
+      <select id="gradeB" onchange="renderComparison()"></select>
+      <div class="sidebar-title" style="margin-top:.5rem">Filtrar por carbono</div>
+      <label>%C mínimo: <span id="cMinLbl">0.10</span></label>
+      <input type="range" id="cMinSlider" min="0.10" max="0.92" step="0.01" value="0.10" oninput="updateCFilter()">
+      <label style="margin-top:4px">%C máximo: <span id="cMaxLbl">0.92</span></label>
+      <input type="range" id="cMaxSlider" min="0.10" max="0.92" step="0.01" value="0.92" oninput="updateCFilter()">
+      <div class="sidebar-title" style="margin-top:.5rem">Top grados por propiedad</div>
+      <div id="topList" style="font-size:11px;color:var(--text2);display:flex;flex-direction:column;gap:3px"></div>
+    </div>
+    <div class="app-main">
+      <div class="grid-2">
+        <div class="chart-box" id="cmpKpis"></div>
+        <div class="chart-box">
+          <div class="chart-title">Comparación visual por condición</div>
+          <div class="chart-wrap" style="height:180px"><canvas id="cmpBar" role="img" aria-label="Comparación de grados"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title" id="cmpScatterTitle">Todos los grados — scatter interactivo</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="cmpScatter" role="img" aria-label="Scatter todos los grados"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════  SLIDE 8 — APP: MODO APLICACIÓN  ══════════════ -->
+<div class="slide" data-slide="8">
+  <div class="slide-tag">Extra — Aplicación interactiva · Modo 2</div>
+  <div class="slide-title" style="margin-bottom:.5rem">Selección por Área de Ingeniería</div>
+  <div class="app-layout" style="flex:1">
+    <div class="app-sidebar">
+      <div class="sidebar-title">Área de aplicación</div>
+      <button class="sidebar-btn active" onclick="selectSector('biomed',this)">🏥 Ing. Biomédica</button>
+      <button class="sidebar-btn" onclick="selectSector('civil',this)">🏗️ Ing. Civil</button>
+      <button class="sidebar-btn" onclick="selectSector('mech',this)">⚙️ Ing. Mecánica</button>
+      <button class="sidebar-btn" onclick="selectSector('elec',this)">⚡ Ing. Eléctrica</button>
+      <button class="sidebar-btn" onclick="selectSector('aero',this)">✈️ Ing. Aeroespacial</button>
+      <button class="sidebar-btn" onclick="selectSector('auto',this)">🚗 Automotriz</button>
+      <div class="sidebar-title" style="margin-top:.75rem">Información del sector</div>
+      <div id="sectorInfo" style="font-size:11px;color:var(--text2);line-height:1.6"></div>
+    </div>
+    <div class="app-main">
+      <div id="sectorKpis" class="grid-4"></div>
+      <div class="grid-2">
+        <div class="chart-box">
+          <div class="chart-title" id="sectorChartTitle">Grados recomendados</div>
+          <div class="chart-wrap" style="height:200px"><canvas id="sectorBar" role="img" aria-label="Grados recomendados"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">Perfil de propiedades del mejor grado</div>
+          <div class="chart-wrap" style="height:200px"><canvas id="sectorRadar" role="img" aria-label="Perfil de propiedades"></canvas></div>
+        </div>
+      </div>
+      <div class="card" id="sectorTable"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════  SLIDE 9 — CONCLUSIONES  ══════════════ -->
+<div class="slide" data-slide="9">
+  <div class="slide-tag">Conclusiones generales</div>
+  <div class="slide-title">Lo que aprendimos del dataset</div>
+  <div class="slide-sub">Cuatro hallazgos clave sobre la relación composición–proceso–propiedad en aceros al carbono SAE.</div>
+  <div class="grid-2" style="flex:1;align-items:start;gap:1.5rem">
+    <div style="display:flex;flex-direction:column;gap:.75rem">
+      <div class="card card-accent">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--blue);margin-bottom:6px">HALLAZGO 01 — %C y resistencia</div>
+        <div class="conclusion-item"><div class="conclusion-dot"></div><div class="conclusion-text">UTS, YS y Dureza aumentan con %C de forma no lineal. La elongación cae. El carbono endurece por formación de carburos de hierro (Fe₃C) que bloquean dislocaciones.</div></div>
+        <div class="conclusion-item"><div class="conclusion-dot"></div><div class="conclusion-text">La dispersión de datos aumenta a %C alto, señal de que el tratamiento amplifica el efecto del carbono.</div></div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--red)">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--red);margin-bottom:6px">HALLAZGO 02 — Efecto del tratamiento</div>
+        <div class="conclusion-item"><div class="conclusion-dot" style="background:var(--red)"></div><div class="conclusion-text">El tratamiento es el factor dominante: explica ~55% de la varianza en UTS vs ~32% del %C (ANOVA).</div></div>
+        <div class="conclusion-item"><div class="conclusion-dot" style="background:var(--red)"></div><div class="conclusion-text">Quenched eleva UTS en promedio 2× respecto a Hot Rolled para el mismo grado SAE. Cold Drawn es el mejor compromiso resistencia-ductilidad.</div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.75rem">
+      <div class="card" style="border-left:3px solid var(--amber)">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--amber);margin-bottom:6px">HALLAZGO 03 — Interacción C-tratamiento</div>
+        <div class="conclusion-item"><div class="conclusion-dot" style="background:var(--amber)"></div><div class="conclusion-text">El efecto del %C depende del tratamiento. Un Quenched de bajo carbono supera a un Hot Rolled de alto carbono. No se puede optimizar un factor ignorando el otro.</div></div>
+        <div class="conclusion-item"><div class="conclusion-dot" style="background:var(--amber)"></div><div class="conclusion-text">Los aceros aleados (4xxx, 5xxx, 8xxx) rompen la tendencia "más C = más duro" porque otros elementos (Ni, Cr, Mo) también endurecen la matriz.</div></div>
+      </div>
+      <div class="card" style="border-left:3px solid var(--teal)">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--teal);margin-bottom:6px">HALLAZGO 04 — Selección por aplicación</div>
+        <div class="conclusion-item"><div class="conclusion-dot" style="background:var(--teal)"></div><div class="conclusion-text">No existe un "mejor acero". Cada aplicación demanda un perfil diferente: alta dureza para herramientas, alta ductilidad para estructuras sísmicas, balance para prótesis.</div></div>
+        <div class="conclusion-item"><div class="conclusion-dot" style="background:var(--teal)"></div><div class="conclusion-text">La combinación %C + tratamiento + aleantes permite diseñar propiedades a la carta, que es el concepto central de la Ingeniería de Materiales.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════  SLIDE 10 — PROMPTS USADOS  ══════════════ -->
+<div class="slide" data-slide="10">
+  <div class="slide-tag">Metodología — IA como herramienta</div>
+  <div class="slide-title">Prompts utilizados en el proyecto</div>
+  <div class="slide-sub">Ejemplos de prompts efectivos usados para generar el código de análisis con ayuda de IA.</div>
+  <div class="grid-2" style="flex:1;align-items:start;gap:1rem">
+    <div style="display:flex;flex-direction:column;gap:.5rem">
+      <div class="card-sm card-accent"><div class="analysis-q">Carga y limpieza</div><div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;line-height:1.6">"Carga el archivo xlsx con pandas usando dtype={'SAE Grade':str}. Limpia la columna Conditions eliminando espacios dobles. Calcula el %C promedio de C(Min) y C(Max). Convierte UTS, YS, Hardness y Elongation a numérico con errors='coerce'."</div></div>
+      <div class="card-sm"><div class="analysis-q">Clasificación de tratamientos</div><div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;line-height:1.6">"Crea una columna 'Condition_simple' que agrupe los tratamientos en: Hot Rolled, Cold Drawn, Annealed, Normalized, Quenched. Usa str.contains() con expresiones regulares para capturar variantes como 'Hot rotted' o 'Cold Orawn'."</div></div>
+      <div class="card-sm"><div class="analysis-q">Gráfica de propiedades vs %C</div><div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;line-height:1.6">"Genera un scatter con matplotlib con 4 series: UTS, YS, Hardness y Elongation×10 en función de %C. Incluye título, ejes etiquetados y leyenda. Usa colores distintos para cada propiedad."</div></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.5rem">
+      <div class="card-sm"><div class="analysis-q">Boxplot por tratamiento</div><div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;line-height:1.6">"Haz un boxplot con matplotlib de UTS por tipo de tratamiento (Condition_simple). Ordena los grupos por mediana. Colorea cada box con un color distinto. Muestra los outliers como puntos."</div></div>
+      <div class="card-sm"><div class="analysis-q">Extracción de temperatura</div><div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;line-height:1.6">"Extrae el número de temperatura de la columna Conditions usando re.search(r'(\d{3,4})\s*°?[Cc]'). Guárdalo en una nueva columna 'Temp_C'. Filtra solo Annealed y grafica propiedad vs Temp_C."</div></div>
+      <div class="card-sm"><div class="analysis-q">ANOVA de dos factores</div><div style="font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:4px;line-height:1.6">"Realiza un ANOVA de tipo II con statsmodels sobre UTS usando como factores Condition_simple y %C. Muestra la tabla con F-valor, p-valor. Ayúdame a interpretar qué factor explica más varianza."</div></div>
+      <div class="card-sm" style="border-left:3px solid var(--blue)"><div class="analysis-q">Recomendación de la guía</div><div style="font-size:11px;color:var(--text2);margin-top:4px;line-height:1.6">Siempre incluir en el prompt: qué calcular, qué columnas usar, qué tipo de gráfica, y qué interpretación buscar. La IA es una herramienta de apoyo, no un sustituto del razonamiento propio.</div></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /deck -->
+
+<script>
+// ── DATA ──
+const DATA=[{"SAE Grade":"1010","Condition":"Hot Rolled","pC":0.105,"UTS (MPa)":325,"YS (MPa)":180,"Hardness (HB)":95,"Elongation (%)":28},{"SAE Grade":"1010","Condition":"Cold Drawn","pC":0.105,"UTS (MPa)":365,"YS (MPa)":305,"Hardness (HB)":105,"Elongation (%)":20},{"SAE Grade":"1012","Condition":"Hot Rolled","pC":0.125,"UTS (MPa)":330,"YS (MPa)":185,"Hardness (HB)":95,"Elongation (%)":28},{"SAE Grade":"1012","Condition":"Cold Drawn","pC":0.125,"UTS (MPa)":370,"YS (MPa)":310,"Hardness (HB)":105,"Elongation (%)":19},{"SAE Grade":"1015","Condition":"Hot Rolled","pC":0.155,"UTS (MPa)":345,"YS (MPa)":190,"Hardness (HB)":101,"Elongation (%)":28},{"SAE Grade":"1015","Condition":"Cold Drawn","pC":0.155,"UTS (MPa)":385,"YS (MPa)":325,"Hardness (HB)":111,"Elongation (%)":18},{"SAE Grade":"1016","Condition":"Hot Rolled","pC":0.155,"UTS (MPa)":380,"YS (MPa)":205,"Hardness (HB)":110,"Elongation (%)":25},{"SAE Grade":"1016","Condition":"Cold Drawn","pC":0.155,"UTS (MPa)":420,"YS (MPa)":350,"Hardness (HB)":121,"Elongation (%)":18},{"SAE Grade":"1017","Condition":"Hot Rolled","pC":0.175,"UTS (MPa)":365,"YS (MPa)":200,"Hardness (HB)":105,"Elongation (%)":26},{"SAE Grade":"1017","Condition":"Cold Drawn","pC":0.175,"UTS (MPa)":405,"YS (MPa)":340,"Hardness (HB)":116,"Elongation (%)":18},{"SAE Grade":"1018","Condition":"Hot Rolled","pC":0.175,"UTS (MPa)":400,"YS (MPa)":220,"Hardness (HB)":116,"Elongation (%)":25},{"SAE Grade":"1018","Condition":"Cold Drawn","pC":0.175,"UTS (MPa)":440,"YS (MPa)":370,"Hardness (HB)":126,"Elongation (%)":15},{"SAE Grade":"1019","Condition":"Hot Rolled","pC":0.175,"UTS (MPa)":405,"YS (MPa)":225,"Hardness (HB)":116,"Elongation (%)":25},{"SAE Grade":"1019","Condition":"Cold Drawn","pC":0.175,"UTS (MPa)":455,"YS (MPa)":380,"Hardness (HB)":131,"Elongation (%)":15},{"SAE Grade":"1020","Condition":"Hot Rolled","pC":0.205,"UTS (MPa)":380,"YS (MPa)":205,"Hardness (HB)":111,"Elongation (%)":25},{"SAE Grade":"1020","Condition":"Cold Drawn","pC":0.205,"UTS (MPa)":420,"YS (MPa)":350,"Hardness (HB)":121,"Elongation (%)":15},{"SAE Grade":"1025","Condition":"Hot Rolled","pC":0.25,"UTS (MPa)":400,"YS (MPa)":220,"Hardness (HB)":116,"Elongation (%)":25},{"SAE Grade":"1025","Condition":"Cold Drawn","pC":0.25,"UTS (MPa)":440,"YS (MPa)":370,"Hardness (HB)":126,"Elongation (%)":15},{"SAE Grade":"1030","Condition":"Hot Rolled","pC":0.31,"UTS (MPa)":470,"YS (MPa)":260,"Hardness (HB)":137,"Elongation (%)":20},{"SAE Grade":"1030","Condition":"Cold Drawn","pC":0.31,"UTS (MPa)":525,"YS (MPa)":440,"Hardness (HB)":149,"Elongation (%)":12},{"SAE Grade":"1035","Condition":"Hot Rolled","pC":0.35,"UTS (MPa)":495,"YS (MPa)":270,"Hardness (HB)":143,"Elongation (%)":18},{"SAE Grade":"1035","Condition":"Cold Drawn","pC":0.35,"UTS (MPa)":550,"YS (MPa)":460,"Hardness (HB)":163,"Elongation (%)":12},{"SAE Grade":"1040","Condition":"Hot Rolled","pC":0.405,"UTS (MPa)":525,"YS (MPa)":290,"Hardness (HB)":149,"Elongation (%)":18},{"SAE Grade":"1040","Condition":"Cold Drawn","pC":0.405,"UTS (MPa)":585,"YS (MPa)":490,"Hardness (HB)":170,"Elongation (%)":12},{"SAE Grade":"1045","Condition":"Hot Rolled","pC":0.465,"UTS (MPa)":565,"YS (MPa)":310,"Hardness (HB)":163,"Elongation (%)":16},{"SAE Grade":"1045","Condition":"Cold Drawn","pC":0.465,"UTS (MPa)":625,"YS (MPa)":530,"Hardness (HB)":179,"Elongation (%)":12},{"SAE Grade":"1045","Condition":"Annealed","pC":0.465,"UTS (MPa)":585,"YS (MPa)":505,"Hardness (HB)":170,"Elongation (%)":12},{"SAE Grade":"1050","Condition":"Hot Rolled","pC":0.515,"UTS (MPa)":620,"YS (MPa)":340,"Hardness (HB)":179,"Elongation (%)":15},{"SAE Grade":"1050","Condition":"Cold Drawn","pC":0.515,"UTS (MPa)":690,"YS (MPa)":580,"Hardness (HB)":197,"Elongation (%)":10},{"SAE Grade":"1060","Condition":"Hot Rolled","pC":0.6,"UTS (MPa)":675,"YS (MPa)":370,"Hardness (HB)":201,"Elongation (%)":12},{"SAE Grade":"1060","Condition":"Annealed","pC":0.6,"UTS (MPa)":620,"YS (MPa)":485,"Hardness (HB)":183,"Elongation (%)":10},{"SAE Grade":"1080","Condition":"Hot Rolled","pC":0.815,"UTS (MPa)":770,"YS (MPa)":425,"Hardness (HB)":229,"Elongation (%)":10},{"SAE Grade":"1080","Condition":"Annealed","pC":0.815,"UTS (MPa)":675,"YS (MPa)":515,"Hardness (HB)":192,"Elongation (%)":10},{"SAE Grade":"1095","Condition":"Hot Rolled","pC":null,"UTS (MPa)":825,"YS (MPa)":455,"Hardness (HB)":248,"Elongation (%)":10},{"SAE Grade":"4130","Condition":"Normalized","pC":0.305,"UTS (MPa)":670,"YS (MPa)":435,"Hardness (HB)":197,"Elongation (%)":null},{"SAE Grade":"4130","Condition":"Quenched","pC":0.305,"UTS (MPa)":1040,"YS (MPa)":979,"Hardness (HB)":302,"Elongation (%)":null},{"SAE Grade":"4140","Condition":"Normalized","pC":0.405,"UTS (MPa)":1020,"YS (MPa)":655,"Hardness (HB)":302,"Elongation (%)":null},{"SAE Grade":"4140","Condition":"Quenched","pC":0.405,"UTS (MPa)":1075,"YS (MPa)":986,"Hardness (HB)":311,"Elongation (%)":null},{"SAE Grade":"4150","Condition":"Quenched","pC":0.505,"UTS (MPa)":1310,"YS (MPa)":1215,"Hardness (HB)":375,"Elongation (%)":null},{"SAE Grade":"4340","Condition":"Normalized","pC":0.405,"UTS (MPa)":1282,"YS (MPa)":862,"Hardness (HB)":363,"Elongation (%)":null},{"SAE Grade":"4340","Condition":"Annealed","pC":0.405,"UTS (MPa)":745,"YS (MPa)":470,"Hardness (HB)":217,"Elongation (%)":22},{"SAE Grade":"4340","Condition":"Quenched","pC":0.405,"UTS (MPa)":1207,"YS (MPa)":1145,"Hardness (HB)":352,"Elongation (%)":null},{"SAE Grade":"5160","Condition":"Quenched","pC":0.6,"UTS (MPa)":1145,"YS (MPa)":1005,"Hardness (HB)":341,"Elongation (%)":null},{"SAE Grade":"6150","Condition":"Quenched","pC":0.505,"UTS (MPa)":1200,"YS (MPa)":1160,"Hardness (HB)":352,"Elongation (%)":null},{"SAE Grade":"8630","Condition":"Quenched","pC":0.305,"UTS (MPa)":931,"YS (MPa)":850,"Hardness (HB)":269,"Elongation (%)":null},{"SAE Grade":"8650","Condition":"Quenched","pC":0.505,"UTS (MPa)":1185,"YS (MPa)":1105,"Hardness (HB)":352,"Elongation (%)":null},{"SAE Grade":"8740","Condition":"Quenched","pC":0.405,"UTS (MPa)":1225,"YS (MPa)":1130,"Hardness (HB)":352,"Elongation (%)":16},{"SAE Grade":"9255","Condition":"Quenched","pC":0.55,"UTS (MPa)":1130,"YS (MPa)":924,"Hardness (HB)":321,"Elongation (%)":null},{"SAE Grade":"1340","Condition":"Normalized","pC":0.405,"UTS (MPa)":834,"YS (MPa)":558,"Hardness (HB)":248,"Elongation (%)":22},{"SAE Grade":"1552","Condition":"Hot Rolled","pC":0.51,"UTS (MPa)":745,"YS (MPa)":410,"Hardness (HB)":217,"Elongation (%)":12},{"SAE Grade":"1141","Condition":"Cold Drawn","pC":0.41,"UTS (MPa)":725,"YS (MPa)":605,"Hardness (HB)":212,"Elongation (%)":10},{"SAE Grade":"4419","Condition":"Normalized","pC":0.205,"UTS (MPa)":515,"YS (MPa)":350,"Hardness (HB)":143,"Elongation (%)":32.5},{"SAE Grade":"4419","Condition":"Annealed","pC":0.205,"UTS (MPa)":450,"YS (MPa)":330,"Hardness (HB)":121,"Elongation (%)":31.2}];
+
+const CMAP={"Hot Rolled":"#3b82f6","Cold Drawn":"#14b8a6","Annealed":"#f59e0b","Normalized":"#a855f7","Quenched":"#ef4444","Other":"#64748b"};
+const CONDS=["Hot Rolled","Cold Drawn","Annealed","Normalized","Quenched"];
+let cMin=0.10,cMax=0.92;
+const charts={};
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+const baseOpts={
+  responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2128',titleColor:'#e2e8f0',bodyColor:'#94a3b8',borderColor:'#252c35',borderWidth:1}},
+  scales:{x:{grid:{color:'#1c2128'},ticks:{color:'#64748b',font:{size:10}}},y:{grid:{color:'#1c2128'},ticks:{color:'#64748b',font:{size:10}}}}
+};
+
+// ── SLIDE 2 ──
+function initSlide2(){
+  dc('condBar');
+  charts['condBar']=new Chart(document.getElementById('condBar'),{
+    type:'bar',
+    data:{labels:CONDS,datasets:[{data:[65,50,41,22,12],backgroundColor:CONDS.map(c=>CMAP[c]+'bb'),borderColor:CONDS.map(c=>CMAP[c]),borderWidth:1.5,borderRadius:4}]},
+    options:{...baseOpts,indexAxis:'y',scales:{x:{...baseOpts.scales.x},y:{...baseOpts.scales.y,ticks:{color:'#94a3b8',font:{size:11}}}}}
+  });
+  dc('cPie');
+  charts['cPie']=new Chart(document.getElementById('cPie'),{
+    type:'doughnut',
+    data:{labels:['Bajo <0.30%','Medio 0.30-0.60%','Alto >0.60%'],datasets:[{data:[52,99,25],backgroundColor:['#1d4ed8bb','#3b82f6bb','#93c5fdbb'],borderColor:['#1d4ed8','#3b82f6','#93c5fd'],borderWidth:1.5}]},
+    options:{...baseOpts,plugins:{...baseOpts.plugins,legend:{display:true,position:'bottom',labels:{color:'#94a3b8',font:{size:10},boxWidth:10}}}}
+  });
+}
+
+// ── SLIDE 3 ──
+function initSlide3(){
+  const d=DATA.filter(r=>r.pC!=null);
+  dc('allPropsChart');
+  charts['allPropsChart']=new Chart(document.getElementById('allPropsChart'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'UTS',data:d.filter(r=>r['UTS (MPa)']!=null).map(r=>({x:r.pC,y:r['UTS (MPa)']})),backgroundColor:'#3b82f688',pointRadius:4},
+      {label:'YS',data:d.filter(r=>r['YS (MPa)']!=null).map(r=>({x:r.pC,y:r['YS (MPa)']})),backgroundColor:'#14b8a688',pointRadius:4},
+      {label:'Dureza',data:d.filter(r=>r['Hardness (HB)']!=null).map(r=>({x:r.pC,y:r['Hardness (HB)']})),backgroundColor:'#f59e0b88',pointRadius:4},
+      {label:'Elong×10',data:d.filter(r=>r['Elongation (%)']!=null).map(r=>({x:r.pC,y:r['Elongation (%)']*10})),backgroundColor:'#ef444488',pointRadius:4},
+    ]},
+    options:{...baseOpts,scales:{x:{...baseOpts.scales.x,title:{display:true,text:'% Carbono',color:'#64748b',font:{size:10}}},y:{...baseOpts.scales.y,title:{display:true,text:'Valor de propiedad',color:'#64748b',font:{size:10}}}}}
+  });
+}
+
+// ── SLIDE 4 ──
+function initSlide4(){
+  const d=DATA.filter(r=>r.pC!=null&&r['UTS (MPa)']!=null);
+  dc('scatterChart');
+  charts['scatterChart']=new Chart(document.getElementById('scatterChart'),{
+    type:'scatter',
+    data:{datasets:CONDS.map(c=>({
+      label:c,
+      data:d.filter(r=>r.Condition===c).map(r=>({x:r.pC,y:r['UTS (MPa)'],g:r['SAE Grade']})),
+      backgroundColor:CMAP[c]+'99',pointRadius:5,pointHoverRadius:7
+    }))},
+    options:{...baseOpts,plugins:{...baseOpts.plugins,legend:{display:false},tooltip:{...baseOpts.plugins.tooltip,callbacks:{label:ctx=>`${ctx.raw.g} — %C:${ctx.raw.x.toFixed(2)} UTS:${ctx.raw.y} MPa`}}},
+      scales:{x:{...baseOpts.scales.x,title:{display:true,text:'% Carbono',color:'#64748b',font:{size:10}}},y:{...baseOpts.scales.y,title:{display:true,text:'UTS (MPa)',color:'#64748b',font:{size:10}}}}}
+  });
+}
+
+// ── SLIDE 5 ──
+function initSlide5(){
+  const propAvg=(conds,prop)=>conds.map(c=>{const v=DATA.filter(r=>r.Condition===c&&r[prop]!=null).map(r=>r[prop]);return v.length?+(v.reduce((a,b)=>a+b,0)/v.length).toFixed(0):0;});
+  const propMin=(conds,prop)=>conds.map(c=>{const v=DATA.filter(r=>r.Condition===c&&r[prop]!=null).map(r=>r[prop]);return v.length?Math.min(...v):0;});
+  const propMax=(conds,prop)=>conds.map(c=>{const v=DATA.filter(r=>r.Condition===c&&r[prop]!=null).map(r=>r[prop]);return v.length?Math.max(...v):0;});
+
+  function barChart(id,prop,label){
+    dc(id);
+    const avg=propAvg(CONDS,prop),mn=propMin(CONDS,prop),mx=propMax(CONDS,prop);
+    charts[id]=new Chart(document.getElementById(id),{
+      type:'bar',
+      data:{labels:CONDS,datasets:[
+        {label:'Min',data:mn,backgroundColor:'#1c212855',borderWidth:0,stack:'s'},
+        {label:label,data:avg.map((v,i)=>v-mn[i]),backgroundColor:CONDS.map(c=>CMAP[c]+'cc'),borderColor:CONDS.map(c=>CMAP[c]),borderWidth:1.5,borderRadius:2,stack:'s'},
+        {label:'Max',data:mx.map((v,i)=>v-avg[i]),backgroundColor:CONDS.map(c=>CMAP[c]+'44'),borderWidth:0,stack:'s'},
+      ]},
+      options:{...baseOpts,plugins:{...baseOpts.plugins,tooltip:{...baseOpts.plugins.tooltip,callbacks:{label:ctx=>ctx.datasetIndex===1?`${label}: ${(ctx.raw+propMin(CONDS,prop)[ctx.dataIndex]).toFixed(0)}`:''}}},scales:{x:{...baseOpts.scales.x},y:{...baseOpts.scales.y,stacked:true,title:{display:true,text:label,color:'#64748b',font:{size:10}}}}}
+    });
+  }
+  barChart('boxBarUTS','UTS (MPa)','UTS (MPa)');
+  barChart('boxBarElong','Elongation (%)','Elongación (%)');
+  barChart('boxBarHard','Hardness (HB)','Dureza (HB)');
+}
+
+// ── SLIDE 6 ──
+function initSlide6(){
+  const classes=['Bajo','Medio','Alto'];
+  const cThresh=[[0,0.30],[0.30,0.60],[0.60,2]];
+  dc('anovaChart');
+  charts['anovaChart']=new Chart(document.getElementById('anovaChart'),{
+    type:'bar',
+    data:{labels:classes,datasets:CONDS.map(c=>({
+      label:c,
+      data:cThresh.map(([lo,hi])=>{
+        const v=DATA.filter(r=>r.Condition===c&&r.pC!=null&&r.pC>=lo&&r.pC<hi&&r['UTS (MPa)']!=null).map(r=>r['UTS (MPa)']);
+        return v.length?+(v.reduce((a,b)=>a+b,0)/v.length).toFixed(0):null;
+      }),
+      backgroundColor:CMAP[c]+'bb',borderColor:CMAP[c],borderWidth:1.5,borderRadius:3
+    }))},
+    options:{...baseOpts,plugins:{...baseOpts.plugins,legend:{display:true,position:'top',labels:{color:'#94a3b8',font:{size:9},boxWidth:8}}},scales:{x:{...baseOpts.scales.x},y:{...baseOpts.scales.y,title:{display:true,text:'UTS media (MPa)',color:'#64748b',font:{size:10}}}}}
+  });
+}
+
+// ── SLIDE 7 — COMPARADOR ──
+function initSlide7(){
+  const grades=[...new Set(DATA.map(r=>r['SAE Grade']))].sort();
+  const sel=id=>{const s=document.getElementById(id);s.innerHTML=grades.map(g=>`<option value="${g}">${g}</option>`).join('');};
+  sel('gradeA');sel('gradeB');
+  document.getElementById('gradeA').value='1045';
+  document.getElementById('gradeB').value='4340';
+  renderComparison();
+}
+
+function propKey(k){return{uts:'UTS (MPa)',ys:'YS (MPa)',hard:'Hardness (HB)',elong:'Elongation (%)'}[k];}
+function gradeMean(grade,prop){
+  const v=DATA.filter(r=>r['SAE Grade']===grade&&r[prop]!=null).map(r=>r[prop]);
+  return v.length?+(v.reduce((a,b)=>a+b,0)/v.length).toFixed(0):null;
+}
+
+function updateCFilter(){
+  cMin=parseFloat(document.getElementById('cMinSlider').value);
+  cMax=parseFloat(document.getElementById('cMaxSlider').value);
+  document.getElementById('cMinLbl').textContent=cMin.toFixed(2);
+  document.getElementById('cMaxLbl').textContent=cMax.toFixed(2);
+  renderComparison();
+}
+
+function renderComparison(){
+  const prop=propKey(document.getElementById('cmpProp').value);
+  const ga=document.getElementById('gradeA')?.value;
+  const gb=document.getElementById('gradeB')?.value;
+  if(!ga||!gb)return;
+
+  // KPIs
+  const kpiEl=document.getElementById('cmpKpis');
+  const va=gradeMean(ga,prop),vb=gradeMean(gb,prop);
+  kpiEl.innerHTML=`<div class="chart-title">Comparación de medias — ${prop}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:.5rem">
+      <div class="kpi"><div class="kpi-label">SAE ${ga}</div><div class="kpi-val" style="color:#3b82f6">${va??'—'}</div><div class="kpi-unit">${prop}</div></div>
+      <div class="kpi"><div class="kpi-label">SAE ${gb}</div><div class="kpi-val" style="color:#14b8a6">${vb??'—'}</div><div class="kpi-unit">${prop}</div></div>
+    </div>
+    ${va&&vb?`<div style="margin-top:.75rem;font-size:12px;color:#94a3b8">Diferencia: <span style="color:#f59e0b;font-family:var(--mono)">${Math.abs(va-vb)} ${prop.includes('%')?'%':'MPa'}</span> (${((Math.abs(va-vb)/Math.min(va,vb))*100).toFixed(0)}% más ${va>vb?'SAE '+ga:'SAE '+gb})</span></div>`:''}`;
+
+  // Bar by condition
+  const condData=(g)=>CONDS.map(c=>{const r=DATA.find(d=>d['SAE Grade']===g&&d.Condition===c);return r?r[prop]:null;});
+  dc('cmpBar');
+  charts['cmpBar']=new Chart(document.getElementById('cmpBar'),{
+    type:'bar',
+    data:{labels:CONDS,datasets:[
+      {label:`SAE ${ga}`,data:condData(ga),backgroundColor:'#3b82f6bb',borderColor:'#3b82f6',borderWidth:1.5,borderRadius:3},
+      {label:`SAE ${gb}`,data:condData(gb),backgroundColor:'#14b8a6bb',borderColor:'#14b8a6',borderWidth:1.5,borderRadius:3},
+    ]},
+    options:{...baseOpts,plugins:{...baseOpts.plugins,legend:{display:true,labels:{color:'#94a3b8',font:{size:10},boxWidth:8}}}}
+  });
+
+  // Scatter all
+  const filt=DATA.filter(r=>r[prop]!=null&&(r.pC==null||(r.pC>=cMin&&r.pC<=cMax)));
+  dc('cmpScatter');
+  charts['cmpScatter']=new Chart(document.getElementById('cmpScatter'),{
+    type:'scatter',
+    data:{datasets:[
+      ...CONDS.map(c=>({label:c,data:filt.filter(r=>r.Condition===c).map(r=>({x:r.pC??0,y:r[prop],g:r['SAE Grade']})),backgroundColor:CMAP[c]+'66',pointRadius:4})),
+      {label:`SAE ${ga}`,data:DATA.filter(r=>r['SAE Grade']===ga&&r[prop]!=null).map(r=>({x:r.pC??0,y:r[prop]})),backgroundColor:'#fff',pointRadius:7,pointStyle:'star'},
+      {label:`SAE ${gb}`,data:DATA.filter(r=>r['SAE Grade']===gb&&r[prop]!=null).map(r=>({x:r.pC??0,y:r[prop]})),backgroundColor:'#fbbf24',pointRadius:7,pointStyle:'star'},
+    ]},
+    options:{...baseOpts,plugins:{...baseOpts.plugins,legend:{display:false}},scales:{x:{...baseOpts.scales.x,title:{display:true,text:'% Carbono',color:'#64748b',font:{size:10}}},y:{...baseOpts.scales.y,title:{display:true,text:prop,color:'#64748b',font:{size:10}}}}}
+  });
+
+  // Top list
+  const sorted=[...new Set(DATA.map(r=>r['SAE Grade']))].map(g=>({g,v:gradeMean(g,prop)})).filter(x=>x.v).sort((a,b)=>b.v-a.v).slice(0,5);
+  document.getElementById('topList').innerHTML=sorted.map((x,i)=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #1c2128"><span style="color:${i===0?'#f59e0b':'#94a3b8'}">${i+1}. SAE ${x.g}</span><span style="font-family:var(--mono);color:#e2e8f0">${x.v}</span></div>`).join('');
+}
+
+// ── SLIDE 8 — SECTORES ──
+const SECTORS={
+  biomed:{name:'Ing. Biomédica',icon:'🏥',
+    info:'Prótesis, instrumentos quirúrgicos, implantes temporales. Se requiere alta dureza y resistencia a la fatiga. La biocompatibilidad limita la selección pero los aceros de herramientas siguen siendo relevantes para instrumental.',
+    filter:r=>r['Hardness (HB)']>=200&&r['UTS (MPa)']>=700,prop:'Hardness (HB)',
+    why:'Alta dureza y UTS para mantener filo y resistir esterilización repetida.',
+    grades:['1095','4150','4340','8650','5160']},
+  civil:{name:'Ing. Civil',icon:'🏗️',
+    info:'Vigas estructurales, armaduras, puentes. Se priorizan YS elevado para no ceder bajo carga permanente, y ductilidad alta para absorber energía sísmica antes de colapsar.',
+    filter:r=>r['Elongation (%)']!=null&&r['Elongation (%)']>=18&&r['YS (MPa)']>=200,prop:'YS (MPa)',
+    why:'YS alto con buena elongación. Crítico para resistencia sísmica.',
+    grades:['1020','1025','1030','1040','4419']},
+  mech:{name:'Ing. Mecánica',icon:'⚙️',
+    info:'Ejes, engranajes, troqueles, rodamientos. Amplio rango de aplicaciones. Los aceros de medio y alto carbono con tratamiento térmico ofrecen el perfil más versátil.',
+    filter:r=>r['UTS (MPa)']>=600&&r['Hardness (HB)']>=150,prop:'UTS (MPa)',
+    why:'Equilibrio UTS-dureza para resistir contacto mecánico y fatiga.',
+    grades:['1045','1050','4140','5140','8740']},
+  elec:{name:'Ing. Eléctrica',icon:'⚡',
+    info:'Soportes de transformadores, estructuras de subestaciones, carcasas de motores. Se prioriza soldabilidad (bajo carbono) y resistencia dimensional bajo vibraciones.',
+    filter:r=>r.pC!=null&&r.pC<=0.25&&r['YS (MPa)']>=150,prop:'Elongation (%)',
+    why:'Bajo carbono = alta soldabilidad. Elongación alta para conformado.',
+    grades:['1010','1015','1018','1020','1022']},
+  aero:{name:'Ing. Aeroespacial',icon:'✈️',
+    info:'Herrajes, actuadores, soportes de motores. Alta relación resistencia/peso. Los aceros aleados de ultra-alta resistencia (UHSS) como 4340 Q&T son los favoritos.',
+    filter:r=>r['UTS (MPa)']>=900,prop:'UTS (MPa)',
+    why:'Máxima UTS para minimizar peso manteniendo integridad estructural.',
+    grades:['4340','4150','8740','6150','8650']},
+  auto:{name:'Automotriz',icon:'🚗',
+    info:'Carrocerías, componentes de suspensión, ejes de transmisión. Aceros de alto límite elástico (AHSS) para crashworthiness; aceros de medio carbono para partes de tren motriz.',
+    filter:r=>r['UTS (MPa)']>=400&&r['Elongation (%)']!=null&&r['Elongation (%)']>=12,prop:'UTS (MPa)',
+    why:'UTS suficiente con elongación aceptable para absorber impactos.',
+    grades:['1030','1035','1040','4130','8630']}
+};
+
+function selectSector(id,btn){
+  document.querySelectorAll('#deck [data-slide="8"] .sidebar-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const s=SECTORS[id];
+  document.getElementById('sectorInfo').textContent=s.info;
+  const recs=DATA.filter(s.filter);
+  const byGrade={};
+  recs.forEach(r=>{if(!byGrade[r['SAE Grade']]||byGrade[r['SAE Grade']][s.prop]<r[s.prop])byGrade[r['SAE Grade']]=r;});
+  const sorted=Object.values(byGrade).sort((a,b)=>b[s.prop]-a[s.prop]).slice(0,6);
+
+  // KPIs
+  const kv=recs.map(r=>r[s.prop]).filter(v=>v!=null);
+  document.getElementById('sectorKpis').innerHTML=[
+    {l:'Grados encontrados',v:Object.keys(byGrade).length},
+    {l:'Mejor grado',v:'SAE '+(sorted[0]?.['SAE Grade']??'—')},
+    {l:`${s.prop} máx`,v:kv.length?Math.max(...kv).toFixed(0):'—'},
+    {l:`${s.prop} media`,v:kv.length?(kv.reduce((a,b)=>a+b,0)/kv.length).toFixed(0):'—'},
+  ].map(k=>`<div class="kpi"><div class="kpi-label">${k.l}</div><div class="kpi-val">${k.v}</div></div>`).join('');
+
+  // Bar
+  dc('sectorBar');
+  document.getElementById('sectorChartTitle').textContent=`${s.icon} ${s.name} — ${s.prop}`;
+  charts['sectorBar']=new Chart(document.getElementById('sectorBar'),{
+    type:'bar',
+    data:{labels:sorted.map(r=>r['SAE Grade']),datasets:[{
+      data:sorted.map(r=>r[s.prop]),
+      backgroundColor:sorted.map(r=>CMAP[r.Condition]+'cc'),
+      borderColor:sorted.map(r=>CMAP[r.Condition]),borderWidth:1.5,borderRadius:4,
+      label:s.prop,
+    }]},
+    options:{...baseOpts,plugins:{...baseOpts.plugins,tooltip:{...baseOpts.plugins.tooltip,callbacks:{label:ctx=>`${sorted[ctx.dataIndex].Condition}: ${ctx.raw}`}}}}
+  });
+
+  // Radar best grade
+  const best=sorted[0];
+  if(best){
+    const radarProps=['UTS (MPa)','YS (MPa)','Hardness (HB)','Elongation (%)'];
+    const maxes=[1310,1215,375,35];
+    const vals=radarProps.map((p,i)=>(best[p]!=null?+(best[p]/maxes[i]*100).toFixed(0):0));
+    dc('sectorRadar');
+    charts['sectorRadar']=new Chart(document.getElementById('sectorRadar'),{
+      type:'radar',
+      data:{labels:radarProps,datasets:[{label:`SAE ${best['SAE Grade']}`,data:vals,fill:true,backgroundColor:'#3b82f622',borderColor:'#3b82f6',pointBackgroundColor:'#3b82f6',borderWidth:2}]},
+      options:{...baseOpts,scales:{r:{grid:{color:'#1c2128'},ticks:{display:false,color:'#64748b'},pointLabels:{color:'#94a3b8',font:{size:10}},angleLines:{color:'#1c2128'}}}}
+    });
+  }
+
+  // Table
+  document.getElementById('sectorTable').innerHTML=`
+    <div class="section-label">Tabla de grados recomendados — justificación: ${s.why}</div>
+    <table style="margin-top:.5rem"><thead><tr><th>Grado SAE</th><th>Tratamiento</th><th>UTS (MPa)</th><th>YS (MPa)</th><th>Dureza (HB)</th><th>Elongación (%)</th></tr></thead>
+    <tbody>${sorted.map((r,i)=>`<tr class="${i===0?'highlight-row':''}"><td>${r['SAE Grade']}</td><td><span class="pill pill-${r.Condition==='Hot Rolled'?'hr':r.Condition==='Cold Drawn'?'cd':r.Condition==='Annealed'?'an':r.Condition==='Normalized'?'no':'qu'}">${r.Condition}</span></td><td>${r['UTS (MPa)']??'—'}</td><td>${r['YS (MPa)']??'—'}</td><td>${r['Hardness (HB)']??'—'}</td><td>${r['Elongation (%)']??'—'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+// ── NAVIGATION ──
+let current=1;
+const TOTAL=10;
+const initFns={2:initSlide2,3:initSlide3,4:initSlide4,5:initSlide5,6:initSlide6,7:initSlide7};
+
+function go(dir){
+  const next=Math.max(1,Math.min(TOTAL,current+dir));
+  if(next===current)return;
+  document.querySelector(`.slide[data-slide="${current}"]`).classList.remove('active');
+  current=next;
+  const el=document.querySelector(`.slide[data-slide="${current}"]`);
+  el.classList.add('active');
+  document.getElementById('counter').textContent=`${current} / ${TOTAL}`;
+  document.getElementById('progress').style.width=((current/TOTAL)*100)+'%';
+  if(initFns[current]) setTimeout(()=>initFns[current](),80);
+  if(current===8) setTimeout(()=>{const btn=document.querySelector('#deck [data-slide="8"] .sidebar-btn.active');if(!btn){selectSector('biomed',document.querySelector('#deck [data-slide="8"] .sidebar-btn'));}},80);
+}
+
+function toggleMode(){
+  const btn=document.getElementById('modeBtn');
+  const onApp=current>=7&&current<=8;
+  if(onApp){go(1-current+1);btn.textContent='🔬 Análisis';btn.classList.add('active');}
+  else{const target=current===7||current===8?current:7;document.querySelector(`.slide[data-slide="${current}"]`).classList.remove('active');current=target;document.querySelector(`.slide[data-slide="${current}"]`).classList.add('active');document.getElementById('counter').textContent=`${current} / ${TOTAL}`;document.getElementById('progress').style.width=((current/TOTAL)*100)+'%';setTimeout(()=>initFns[current]&&initFns[current](),80);btn.textContent='📊 Presentación';btn.classList.remove('active');}
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key==='ArrowDown') go(1);
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp') go(-1);
+});
+
+// init first slide's charts when landing on them
+document.getElementById('progress').style.width=((1/TOTAL)*100)+'%';
+</script>
+</body>
+</html>
